@@ -138,7 +138,8 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             out = layer(out, enc_out, enc_out, mask) 
         
-        pred = self.softmax(self.fc_out(out))
+        pred = self.fc_out(out)
+        # pred = self.softmax(pred)
         return pred
 
 
@@ -148,7 +149,7 @@ def make_trg_mask(trg, num_heads):
         batch_size, trg_len, trg_len
     )
     result = torch.cat([trg_mask] * num_heads, dim=0)
-    return result 
+    return ~result.bool() 
 
 
 
@@ -183,7 +184,9 @@ if __name__ == '__main__':
     print(model)
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    dataloder = torch.utils.data.DataLoader(data, batch_size=8, shuffle=False, collate_fn=custom_collate)
+    dataloder = torch.utils.data.DataLoader(data, batch_size=1, shuffle=False, collate_fn=custom_collate)
     for x1, x2, y in tqdm(dataloder): 
-       x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
-       model(x1, x2)
+        x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
+        model(x1, x2)
+        # mask = make_trg_mask(x2, 2)
+        # print(mask)

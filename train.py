@@ -5,14 +5,16 @@ from transformer import *
 
 
 
-def train_loop(dataloader, model, loss_fn, optimizer):
-    size = len(dataloader.dataset)
-    # Set the model to training mode - important for batch normalization and dropout layers
-    # Unnecessary in this situation but added for best practices
+def train_loop(dataloader, model, loss_fn, optimizer, device):
     model.train()
-    for batch, (X, y) in enumerate(dataloader):
+    for x1, x2, y in tqdm(dataloader):
+        # data loading
+        x1, x2, y = x1.to(device), x2.to(device), y.to(device)
+        
         # Compute prediction and loss
-        pred = model(X)
+        pred = model(x1, x2)
+        pred = pred.reshape(-1, pred.shape[-1])
+        y = y.reshape(-1)
         loss = loss_fn(pred, y)
 
         # Backpropagation
@@ -20,30 +22,22 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         optimizer.step()
         optimizer.zero_grad()
 
-        if batch % 100 == 0:
-            loss, current = loss.item(), (batch + 1) * len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-
-def test_loop(dataloader, model, loss_fn):
-    # Set the model to evaluation mode - important for batch normalization and dropout layers
-    # Unnecessary in this situation but added for best practices
+def test_loop(dataloader, model, loss_fn, device):
     model.eval()
-    size = len(dataloader.dataset)
-    num_batches = len(dataloader)
-    test_loss, correct = 0, 0
-
-    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
-    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+    test_loss = 0
     with torch.no_grad():
-        for X, y in dataloader:
-            pred = model(X)
+        for x1, x2, y in tqdm(dataloader):
+            x1, x2, y = x1.to(device), x2.to(device), y.to(device)
+            pred = model(x1, x2)
+            pred = pred.reshape(-1, pred.shape[-1])
+            y = y.reshape(-1)
             test_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
 
+    num_batches = len(dataloader)
     test_loss /= num_batches
-    correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    return test_loss
+    
 
 
 if __name__ == "__main__":
@@ -56,7 +50,13 @@ if __name__ == "__main__":
     print(model)
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    dataloder = torch.utils.data.DataLoader(data, batch_size=8, shuffle=False, collate_fn=custom_collate)
-    for x1, x2, y in tqdm(dataloder): 
-       x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
-       model(x1, x2)
+    dataloader = torch.utils.data.DataLoader(data, batch_size=8, shuffle=False, collate_fn=custom_collate)
+    # for x1, x2, y in tqdm(dataloader): 
+    #    x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
+    #    model(x1, x2)
+    
+    loss_fn = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    train_loop(dataloader, model, loss_fn, optimizer, 'cuda')
+    loss = test_loop(dataloader, model, loss_fn, 'cuda')
+    print(loss)
