@@ -59,6 +59,8 @@ if __name__ == "__main__":
     vocab_en.set_default_index(vocab_en["<unk>"])
     vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<pad>", "<unk>", "<sot>", "<eot>"], min_freq=2)
     vocab_fr.set_default_index(vocab_fr["<unk>"])
+    assert vocab_en['<pad>'] == 0
+    assert vocab_fr['<pad>'] == 0
     print("Voabulary created")
 
     test_data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     
     # model, looss
     model = Transformer(embed_dim, len(vocab_en), len(vocab_fr), num_layers=num_layers, expansion_factor=expansion_factor, n_heads=n_heads).to(device)
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.CrossEntropyLoss(ignore_index=0)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
    
    

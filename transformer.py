@@ -8,7 +8,7 @@ from tqdm import tqdm
 class GlobalEmbedding(nn.Module):
     def __init__(self, vocab_size, embedding_dim):
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
 
     def forward(self, x):
         return self.embedding(x)
@@ -56,8 +56,8 @@ class EncoderBlock(nn.Module):
         self.dropout1 = nn.Dropout(0.2)
         self.dropout2 = nn.Dropout(0.2)
 
-    def forward(self, X):
-        attention_out, _ = self.attention(X, X, X)  
+    def forward(self, X, src_mask):
+        attention_out, _ = self.attention(X, X, X, key_padding_mask=src_mask)  
         attention_residual_out = attention_out + X  
         norm1_out = self.dropout1(self.norm1(attention_residual_out)) 
 
@@ -74,12 +74,12 @@ class TransformerEncoder(nn.Module):
         self.positional_encoder = PositionalEmbedding(embed_dim, device=device)
         self.layers = nn.ModuleList([EncoderBlock(embed_dim, expansion_factor, n_heads) for _ in range(num_layers)])
     
-    def forward(self, x):
+    def forward(self, x, src_mask):
         global_embed_out = self.embedding_layer(x)
         postional_embed_out = self.positional_encoder(x)
         embed_out = global_embed_out + postional_embed_out
         for layer in self.layers:
-            out = layer(embed_out)
+            out = layer(embed_out, src_mask)
         return out  
     
 
@@ -104,13 +104,13 @@ class DecoderBlock(nn.Module):
         self.norm3 = nn.LayerNorm(embed_dim)
         self.dropout3 = nn.Dropout(0.2)
      
-    def forward(self, query, key, val, mask):
-        self_attention_out, _ = self.self_attention(query, query, query, attn_mask=mask)  
+    def forward(self, query, key, val,trg_mask, src_mask):
+        self_attention_out, _ = self.self_attention(query, query, query, attn_mask=trg_mask)  
         self_attention_residual_out = self_attention_out + query  
         norm1_out = self.dropout1(self.norm1(self_attention_residual_out)) 
 
 
-        cross_attention_out, _ = self.cross_attention(norm1_out, key, val)
+        cross_attention_out, _ = self.cross_attention(norm1_out, key, val, key_padding_mask=src_mask)
         corss_attention_residual_out = cross_attention_out + norm1_out
         norm2_out = self.dropout2(self.norm2(corss_attention_residual_out))
 
@@ -130,13 +130,13 @@ class TransformerDecoder(nn.Module):
         self.softmax = nn.Softmax(dim=2)
         # Possible to add a dropout layer here
 
-    def forward(self, x, enc_out, mask):
+    def forward(self, x, enc_out, trg_mask, src_mask):
         global_embd_out = self.word_embedding(x)
         position_embd_out = self.position_embedding(x)
         out = global_embd_out + position_embd_out
         
         for layer in self.layers:
-            out = layer(out, enc_out, enc_out, mask) 
+            out = layer(out, enc_out, enc_out, trg_mask, src_mask) 
         
         pred = self.fc_out(out)
         # pred = self.softmax(pred)
@@ -152,6 +152,10 @@ def make_trg_mask(trg, num_heads):
     return ~result.bool() 
 
 
+def make_src_mask(src, num_heads):
+    src_mask = (src == 0)
+    return src_mask
+
 
 # Transformer
 class Transformer(nn.Module):
@@ -165,8 +169,9 @@ class Transformer(nn.Module):
     
     def forward(self, src, trg):
         trg_mask = make_trg_mask(trg, self.num_heads).to(self.device)
-        enc_out = self.encoder(src)
-        outputs = self.decoder(trg, enc_out, trg_mask)
+        src_mask = make_src_mask(src, self.num_heads).to(self.device)
+        enc_out = self.encoder(src, src_mask)
+        outputs = self.decoder(trg, enc_out, trg_mask, src_mask)
         return outputs
 
 
@@ -179,6 +184,8 @@ if __name__ == '__main__':
     vocab_en.set_default_index(vocab_en["<unk>"])
     vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<pad>", "<unk>", "<sot>", "<eot>"], min_freq=2)
     vocab_fr.set_default_index(vocab_fr["<unk>"])
+    assert vocab_en['<pad>'] == 0
+    assert vocab_fr['<pad>'] == 0
 
     model = Transformer(300, len(vocab_en), len(vocab_fr), num_layers=2, expansion_factor=4, n_heads=3).to('cuda')
     print(model)
