@@ -187,23 +187,3 @@ if __name__ == '__main__':
     for x1, x2, y in tqdm(dataloder): 
        x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
        model(x1, x2)
-
-
-    # enocder = TransformerEncoder(len(vocab_en), 300, 2, 2, 3).to('cuda')    
-    # print(enocder)
-    # decoder = TransformerDecoder(len(vocab_fr), 300, 2, 2, 3).to('cuda')    
-    # print(decoder)
-    
-    # data = EN_Fr_Dataset('train', vocab_en, vocab_fr)
-    # dataloder = torch.utils.data.DataLoader(data, batch_size=8, shuffle=False, collate_fn=custom_collate)
-    # for x1, x2, y in tqdm(dataloder):
-    #     x1 = x1.to('cuda')
-    #     out = enocder(x1)
-        
-    #     x2 = x2.to('cuda')
-    #     mask = make_trg_mask(x2, 3).to('cuda')
-    #     d_out = decoder(x2, out, mask)
-    #     # print(x2)
-    #     # print(mask)
-    #     # print("\n\n\n\n\n")
-    #     # print(x2.shape, make_trg_mask(x2).shape)
