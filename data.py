@@ -4,6 +4,7 @@ from torchtext.vocab import build_vocab_from_iterator
 import json
 import torch
 from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
 
 
 def vocab_iterator(language):
@@ -38,8 +39,8 @@ def Gather_data(split):
 def test_gather_data():
     for line_en, line_fr in Gather_data('test'):
         print(line_en, line_fr)
-        
 
+        
 
 def generate_datases(split, en_vocab, fr_vocab):
     en_tokenizer = get_tokenizer("spacy", language='en_core_web_sm')
@@ -58,7 +59,6 @@ def test_generate_dataset():
     print(json.dumps(data, indent=4, ensure_ascii=False))
     
     
-      
 class EN_Fr_Dataset(Dataset):
     def __init__(self, split, vocab_en, vocab_fr):
         super().__init__()
@@ -75,18 +75,29 @@ class EN_Fr_Dataset(Dataset):
         y = torch.tensor(self.X[idx][1] + [self.vocab_fr['<eot>']]) 
         return x1, x2, y
     
+    
+def custom_collate(batch):
+    En = [sample[0] for sample in batch]
+    Fr = [sample[1] for sample in batch]
+    tr = [sample[2] for sample in batch]
+    
+    En = pad_sequence(En, batch_first=True)
+    Fr = pad_sequence(Fr, batch_first=True)
+    tr = pad_sequence(tr, batch_first=True)
+    return En, Fr, tr
 
 
 if __name__ == "__main__":
-    vocab_en = build_vocab_from_iterator(vocab_iterator("en"), specials=["<unk>"], min_freq=2)
+    vocab_en = build_vocab_from_iterator(vocab_iterator("en"), specials=["<pad>", "<unk>"], min_freq=2)
     vocab_en.set_default_index(vocab_en["<unk>"])
-    vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<unk>", "<sot>", "<eot>"], min_freq=2)
+    vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<pad>", "<unk>", "<sot>", "<eot>"], min_freq=2)
     vocab_fr.set_default_index(vocab_fr["<unk>"])
     print(vocab_fr['<sot>'], vocab_fr['<eot>'], vocab_fr['<unk>'])
+    print(vocab_en['<pad>'], vocab_fr['<pad>'])
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
     print(len(data))
-    dataloder = torch.utils.data.DataLoader(data, batch_size=1, shuffle=False)
+    dataloder = torch.utils.data.DataLoader(data, batch_size=2, shuffle=False, collate_fn=custom_collate)
     for x1, x2, y in dataloder:
         print(x1)
         print(x2)
