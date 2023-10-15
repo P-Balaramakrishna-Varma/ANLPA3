@@ -41,22 +41,52 @@ def test_loop(dataloader, model, loss_fn, device):
 
 
 if __name__ == "__main__":
+    ## Hyperparameters
+    device = 'cuda'
+    
+    epochs = 1
+    lr = 0.001
+    batch_size = 8
+    
+    num_layers = 2
+    expansion_factor = 2
+    n_heads = 2
+    embed_dim = 300
+    
+    
+    ## creating vocabularies
     vocab_en = build_vocab_from_iterator(vocab_iterator("en"), specials=["<pad>", "<unk>"], min_freq=2)
     vocab_en.set_default_index(vocab_en["<unk>"])
     vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<pad>", "<unk>", "<sot>", "<eot>"], min_freq=2)
     vocab_fr.set_default_index(vocab_fr["<unk>"])
+    print("Voabulary created")
 
-    model = Transformer(300, len(vocab_en), len(vocab_fr), num_layers=2, expansion_factor=4, n_heads=3).to('cuda')
-    print(model)
+    test_data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
+    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
     
-    data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    dataloader = torch.utils.data.DataLoader(data, batch_size=8, shuffle=False, collate_fn=custom_collate)
-    # for x1, x2, y in tqdm(dataloader): 
-    #    x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
-    #    model(x1, x2)
+    dev_data = EN_Fr_Dataset('dev', vocab_en, vocab_fr)
+    dev_dataloader = torch.utils.data.DataLoader(dev_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
     
+    train_data = EN_Fr_Dataset('train', vocab_en, vocab_fr)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
+    print("Data loaded")
+    
+    
+    # model, looss
+    model = Transformer(embed_dim, len(vocab_en), len(vocab_fr), num_layers=num_layers, expansion_factor=expansion_factor, n_heads=n_heads).to(device)
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    train_loop(dataloader, model, loss_fn, optimizer, 'cuda')
-    loss = test_loop(dataloader, model, loss_fn, 'cuda')
-    print(loss)
+   
+   
+    # training
+    losses = []
+    for _ in tqdm(range(epochs)):
+        train_loop(train_dataloader, model, loss_fn, optimizer, device)
+        loss = test_loop(dev_dataloader, model, loss_fn, device)
+        losses.append(loss)
+        print(loss)
+    
+    print("\n\n")
+    print(losses)
+    final_loss = test_loop(test_dataloader, model, loss_fn, device)
+    print(final_loss)
