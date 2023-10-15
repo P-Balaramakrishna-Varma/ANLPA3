@@ -191,9 +191,12 @@ if __name__ == '__main__':
     print(model)
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    dataloder = torch.utils.data.DataLoader(data, batch_size=1, shuffle=False, collate_fn=custom_collate)
+    dataloder = torch.utils.data.DataLoader(data, batch_size=2, shuffle=True, collate_fn=custom_collate)
     for x1, x2, y in tqdm(dataloder): 
         x1, x2, y = x1.to('cuda'), x2.to('cuda'), y.to('cuda')
         model(x1, x2)
         # mask = make_trg_mask(x2, 2)
         # print(mask)
+        # print(x1)
+        # print(make_src_mask(x1, 2))
+        # print("\n\n\n")

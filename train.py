@@ -44,7 +44,7 @@ if __name__ == "__main__":
     ## Hyperparameters
     device = 'cuda'
     
-    epochs = 1
+    epochs = 2
     lr = 0.001
     batch_size = 8
     
@@ -64,13 +64,13 @@ if __name__ == "__main__":
     print("Voabulary created")
 
     test_data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
+    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
     
     dev_data = EN_Fr_Dataset('dev', vocab_en, vocab_fr)
-    dev_dataloader = torch.utils.data.DataLoader(dev_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
+    dev_dataloader = torch.utils.data.DataLoader(dev_data, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
     
     train_data = EN_Fr_Dataset('train', vocab_en, vocab_fr)
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
     print("Data loaded")
     
     
