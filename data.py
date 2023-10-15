@@ -17,7 +17,7 @@ def vocab_iterator(language):
         assert False, "language must be 'en' or 'fr'"
 
     tokenizer = get_tokenizer("spacy", language=model)
-    with open('ted-talks-corpus/test.' + extension) as f:
+    with open('ted-talks-corpus/train.' + extension) as f:
         for line in f:
             tokens = tokenizer(line[:-1])    # remove the last character '\n'
             for token in tokens:
@@ -47,10 +47,10 @@ def generate_datases(split, en_vocab, fr_vocab):
     X = []
     for line_en, line_fr in Gather_data(split):
         en_tokens = en_tokenizer(line_en[:-1])    # remove the last character '\n'
-        # en_indices = [en_vocab[token] for token in en_tokens]
+        en_indices = [en_vocab[token] for token in en_tokens]
         fr_tokens = fr_tokenizer(line_fr[:-1])
-        # fr_incides = [fr_vocab[token] for token in fr_tokens]
-        X.append((en_tokens, fr_tokens))
+        fr_indices = [fr_vocab[token] for token in fr_tokens]
+        X.append((en_indices, fr_indices))
     return X
 
 def test_generate_dataset():
@@ -70,12 +70,9 @@ class EN_Fr_Dataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        # x1 = torch.tensor(self.X[idx][0])
-        # x2 = torch.tensor([self.vocab_fr['<sot>']] + self.X[idx][1])
-        # y = torch.tensor(self.X[idx][1] + [self.vocab_fr['<eot>']]) 
-        x1 = self.X[idx][0]
-        x2 = ['<sot>'] + self.X[idx][1]
-        y = self.X[idx][1] + ['<eot>']       
+        x1 = torch.tensor(self.X[idx][0])
+        x2 = torch.tensor([self.vocab_fr['<sot>']] + self.X[idx][1])
+        y = torch.tensor(self.X[idx][1] + [self.vocab_fr['<eot>']]) 
         return x1, x2, y
     
 
@@ -85,6 +82,7 @@ if __name__ == "__main__":
     vocab_en.set_default_index(vocab_en["<unk>"])
     vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<unk>", "<sot>", "<eot>"], min_freq=2)
     vocab_fr.set_default_index(vocab_fr["<unk>"])
+    print(vocab_fr['<sot>'], vocab_fr['<eot>'], vocab_fr['<unk>'])
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
     print(len(data))
