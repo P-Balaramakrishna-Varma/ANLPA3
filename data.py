@@ -64,7 +64,7 @@ class EN_Fr_Dataset(Dataset):
         super().__init__()
         self.vocab_en = vocab_en
         self.vocab_fr = vocab_fr
-        self.X = generate_datases('test', self.vocab_en, self.vocab_fr)
+        self.X = generate_datases(split, self.vocab_en, self.vocab_fr)
         
     def __len__(self):
         return len(self.X)
