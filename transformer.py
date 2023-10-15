@@ -1,6 +1,7 @@
 import torch, math
 import torch.nn as nn
-
+from data import *
+from tqdm import tqdm
 
 # Embedding
 class GlobalEmbedding(nn.Module):
@@ -13,9 +14,9 @@ class GlobalEmbedding(nn.Module):
 
 
 class PostionalEmbedding(nn.Module):
-    def __init__(self, d_model, max_length=800):
+    def __init__(self, d_model, max_length=800, device='cuda'):
         super().__init__()
-        self.pe = gen_pe(max_length, d_model)
+        self.pe = gen_pe(max_length, d_model).to(device)
     
     def forward(self, x):
         len = x.shape[1]
@@ -39,7 +40,7 @@ def gen_pe(max_length, d_model):
 class EncoderBlock(nn.Module):
     def __init__(self, embed_dim, expansion_factor=4, n_heads=8):
         super().__init__()
-        self.attention = MultiHeadAttention(embed_dim, n_heads)
+        self.attention = nn.MultiheadAttention(embed_dim, n_heads, batch_first=True)
 
         self.norm1 = nn.LayerNorm(embed_dim) 
         self.norm2 = nn.LayerNorm(embed_dim)
@@ -54,7 +55,7 @@ class EncoderBlock(nn.Module):
         self.dropout2 = nn.Dropout(0.2)
 
     def forward(self, X):
-        attention_out = self.attention(X, X, X)  
+        attention_out, _ = self.attention(X, X, X)  
         attention_residual_out = attention_out + X  
         norm1_out = self.dropout1(self.norm1(attention_residual_out)) 
 
@@ -78,3 +79,25 @@ class TransformerEncoder(nn.Module):
         for layer in self.layers:
             out = layer(embed_out)
         return out  
+    
+    
+# Decoder
+
+
+
+
+if __name__ == '__main__':
+    vocab_en = build_vocab_from_iterator(vocab_iterator("en"), specials=["<pad>", "<unk>"], min_freq=2)
+    vocab_en.set_default_index(vocab_en["<unk>"])
+    vocab_fr = build_vocab_from_iterator(vocab_iterator("fr"), specials=["<pad>", "<unk>", "<sot>", "<eot>"], min_freq=2)
+    vocab_fr.set_default_index(vocab_fr["<unk>"])
+
+    
+    enocder = TransformerEncoder(len(vocab_en), 300, 2, 2, 3).to('cuda')    
+    print(enocder)
+    data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
+    dataloder = torch.utils.data.DataLoader(data, batch_size=32, shuffle=False, collate_fn=custom_collate)
+    for x1, x2, y in tqdm(dataloder):
+        x1 = x1.to('cuda')
+        out = enocder(x1)
+    
