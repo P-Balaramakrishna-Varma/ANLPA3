@@ -20,26 +20,18 @@ class MultiheadAttention(nn.Module):
         
     
     def forward(self, query, key, value, attn_mask=None, key_padding_mask=None):
-        # attn_mask None or 3d tensor
-        # key_padding_mask None or 2d tensor
-        Query = self.query_matrix(query)
-        Key = self.key_matrix(key)
-        Value = self.value_matrix(value)
+        Query = self.query_matrix(query).reshape(query.shape[0], query.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
+        Key = self.key_matrix(key).reshape(key.shape[0], key.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
+        Value = self.value_matrix(value).reshape(value.shape[0], value.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
         
-        attention_heads = []
-        for i in range(self.n_heads):
-            vals = Value[:, :, i * self.head_dim:(i+1) * self.head_dim]
-            keys = Key[:, :, i * self.head_dim:(i+1) * self.head_dim]
-            queries = Query[:, :, i * self.head_dim:(i+1) * self.head_dim]
-            att_score = torch.einsum("hij,hkj->hik", queries, keys) / math.sqrt(self.head_dim)
-            attn_weights = self.softmax(att_score)
-            attention = torch.einsum("hij, hjk->hik", attn_weights, vals)
-            attention_heads.append(attention)
-        Attention = torch.cat(attention_heads, dim=2)
-        return self.out(Attention)
+        attn_score = torch.einsum("bhij, bhkj->bhik", Query, Key) / math.sqrt(self.head_dim)
+        attn_wights = self.softmax(attn_score)
+        attention = torch.einsum("bhij, bhjk->bhik", attn_wights, Value)
+        attention = attention.permute(0, 2, 1, 3).reshape(query.shape[0], query.shape[1], self.n_heads * self.head_dim)
+        return self.out(attention)
     
     
-    
+ 
 if __name__ == "__main__":
     query = torch.rand(2, 4, 300)
     # print(query)
