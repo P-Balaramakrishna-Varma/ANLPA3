@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-
+from transformer import make_trg_mask
 
 class MultiheadAttention(nn.Module):
     def __init__(self, embed_dim, n_heads, batch_first=True):
@@ -20,12 +20,27 @@ class MultiheadAttention(nn.Module):
         
     
     def forward(self, query, key, value, attn_mask=None, key_padding_mask=None):
+        # projections
         Query = self.query_matrix(query).reshape(query.shape[0], query.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
         Key = self.key_matrix(key).reshape(key.shape[0], key.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
         Value = self.value_matrix(value).reshape(value.shape[0], value.shape[1], self.n_heads, self.head_dim).permute(0, 2, 1, 3)
         
+        # caliculating attentinon scores
         attn_score = torch.einsum("bhij, bhkj->bhik", Query, Key) / math.sqrt(self.head_dim)
+        
+        # Masking and calliculating attention weights
+        mask = torch.zeros(attn_score.shape).bool()
+        if attn_mask is not None:
+            attn_mask = attn_mask.reshape(-1, self.n_heads, attn_mask.shape[1], attn_mask.shape[1])
+            mask = torch.logical_or(mask, attn_mask)
+        if key_padding_mask is not None:
+            key_padding_mask = key_padding_mask.unsqueeze(1).unsqueeze(1).expand(key_padding_mask.shape[0], self.n_heads, key_padding_mask.shape[1], key_padding_mask.shape[1])
+            mask = torch.logical_or(mask, key_padding_mask)
+        attn_score[mask] = 0
         attn_wights = self.softmax(attn_score)
+        attn_wights[mask] = 0
+        
+        # weighted summation
         attention = torch.einsum("bhij, bhjk->bhik", attn_wights, Value)
         attention = attention.permute(0, 2, 1, 3).reshape(query.shape[0], query.shape[1], self.n_heads * self.head_dim)
         return self.out(attention)
@@ -36,4 +51,6 @@ if __name__ == "__main__":
     query = torch.rand(2, 4, 300)
     # print(query)
     model = MultiheadAttention(300, 10)
-    model(query, query, query)
+    attn_mask = make_trg_mask(torch.rand(2, 4), 10)
+    key_padding_mask = torch.zeros(2, 4).bool()
+    model(query, query, query, attn_mask=attn_mask, key_padding_mask=key_padding_mask)
