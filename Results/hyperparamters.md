@@ -22,5 +22,16 @@ We will experiment with ```n_head``` and ```embed_dim``` keeping all other hyper
 
 ## Results
 
-| ```n_head``` | ```embed_dim``` |  ```Test Loss``` |
-| -------------- | ---------------- | ---------- |
+| ```n_head``` | ```embed_dim``` |  ```Test Loss``` | ```Perplexity``` |
+|--------------|-----------------|------------------|------------------|
+|       4      |       100       |       2.885      |      17.90       |
+|       4      |       300       |       2.360      |      10.59       |
+|       6      |       100       |       2.816      |      16.70       |
+|       6      |       300       |       1.603      |       4.96       |
+
+
+## Interpretation
+The model accuracy increases with increase in ```n_head``` or ```embed_dim```.    
+I am unable to reach the optimal value of ```n_head``` and ```embed_dim``` as the model does not fit in the GPU memory for larger values.  
+This model is trained on a rather small dataset 30,000 sentence pairs. The perplexity will decrease as the dataset size increases.    
+The above observations support the correctness of the model.

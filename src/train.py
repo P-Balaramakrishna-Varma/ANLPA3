@@ -57,7 +57,7 @@ if __name__ == "__main__":
     
     num_layers = 2  # fixed as assingment
     expansion_factor = 2  # strong enough no need to experiment
-    n_heads = 4       # vairable
+    n_heads = 6       # vairable
     embed_dim = 300   # variable
     
     
