@@ -44,14 +44,14 @@ if __name__ == "__main__":
     ## Hyperparameters
     device = 'cuda'
     
-    epochs = 2
-    lr = 0.001
-    batch_size = 8
+    epochs = 2  # 10
+    lr = 0.001  # for a setting see the plot and decide
+    batch_size = 32  # fixed time optimality
     
-    num_layers = 2
-    expansion_factor = 2
-    n_heads = 2
-    embed_dim = 300
+    num_layers = 2  # fixed as assingment
+    expansion_factor = 2  # strong enough no need to experiment
+    n_heads = 4       # vairable
+    embed_dim = 300   # variable
     
     
     ## creating vocabularies

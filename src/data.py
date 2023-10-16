@@ -18,7 +18,7 @@ def vocab_iterator(language):
         assert False, "language must be 'en' or 'fr'"
 
     tokenizer = get_tokenizer("spacy", language=model)
-    with open('ted-talks-corpus/train.' + extension) as f:
+    with open('../ted-talks-corpus/train.' + extension) as f:
         for line in f:
             tokens = tokenizer(line[:-1])    # remove the last character '\n'
             for token in tokens:
@@ -31,8 +31,8 @@ def test_vocab_iterator():
 
 
 def Gather_data(split):
-    with open('ted-talks-corpus/' + split + '.en') as f_en:
-        with open('ted-talks-corpus/' + split + '.fr') as f_fr:
+    with open('../ted-talks-corpus/' + split + '.en') as f_en:
+        with open('../ted-talks-corpus/' + split + '.fr') as f_fr:
             for line_en, line_fr in zip(f_en, f_fr):
                 yield line_en, line_fr
 
