@@ -100,3 +100,6 @@ if __name__ == "__main__":
     plot_stats(losses)
     final_loss = test_loop(test_dataloader, model, loss_fn, device)
     print(final_loss)
+    
+    # saving the model
+    torch.save(model.state_dict(), './model.pt')

@@ -40,12 +40,14 @@ if __name__ == "__main__":
     assert vocab_en['<pad>'] == 0
     assert vocab_fr['<pad>'] == 0
     
-    data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    subset = torch.utils.data.Subset(data, range(10)) # see size
-    dataloder = torch.utils.data.DataLoader(subset, batch_size=2, shuffle=False, collate_fn=custom_collate)
+    data = EN_Fr_Dataset('train', vocab_en, vocab_fr)
+    subset = torch.utils.data.Subset(data, range(10000)) # see size
+    dataloder = torch.utils.data.DataLoader(subset, batch_size=16, shuffle=False, collate_fn=custom_collate)
     
     # load model in future
-    model = Transformer(300, len(vocab_en), len(vocab_fr), num_layers=2, expansion_factor=4, n_heads=3).to('cuda')
+    model = Transformer(300, len(vocab_en), len(vocab_fr), num_layers=2, expansion_factor=2, n_heads=6).to('cuda')
+    model.load_state_dict(torch.load('model.pt'))
+    model.eval()
     fr_itos = vocab_fr.get_itos()
     
     Translations = []
@@ -59,7 +61,9 @@ if __name__ == "__main__":
         Translations += translation
         References += reference
 
-
-    for i in range(len(Translations)):
+    print(bleu_score(Translations, References))
+    for i in tqdm(range(len(Translations))):
         score = bleu_score([Translations[i]], [References[i]])
-        print(score)
+        print(score,"\t\t", Translations[i])
+        
+    
