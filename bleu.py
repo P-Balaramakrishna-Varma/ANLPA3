@@ -1,7 +1,7 @@
 import torch
 from data import *
 from transformer import *
-
+from torchtext.data.metrics import bleu_score
 
 
 def get_trans_refer(gen_indices, y, fr_itos):
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     assert vocab_fr['<pad>'] == 0
     
     data = EN_Fr_Dataset('test', vocab_en, vocab_fr)
-    subset = torch.utils.data.Subset(data, range(100))
+    subset = torch.utils.data.Subset(data, range(10)) # see size
     dataloder = torch.utils.data.DataLoader(subset, batch_size=2, shuffle=False, collate_fn=custom_collate)
     
     # load model in future
@@ -55,7 +55,11 @@ if __name__ == "__main__":
         
         gen_indices = model.generate(x1, vocab_fr)
         translation, reference = get_trans_refer(gen_indices, y, fr_itos)
-        print(json.dumps(translation, indent=4, ensure_ascii=False))
         
-        Translations.append(translation)
-        References.append(reference)
+        Translations += translation
+        References += reference
+
+
+    for i in range(len(Translations)):
+        score = bleu_score([Translations[i]], [References[i]])
+        print(score)
