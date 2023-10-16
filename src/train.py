@@ -1,4 +1,5 @@
 import torch
+from matplotlib import pyplot as plt
 
 from data import *
 from transformer import *
@@ -37,14 +38,20 @@ def test_loop(dataloader, model, loss_fn, device):
     num_batches = len(dataloader)
     test_loss /= num_batches
     return test_loss
+   
     
-
+def plot_stats(loss):
+    plt.clf()
+    x = range(len(loss))
+    plt.plot(x, loss, label='loss')
+    plt.savefig('loss.png')
+    
 
 if __name__ == "__main__":
     ## Hyperparameters
     device = 'cuda'
     
-    epochs = 2  # 10
+    epochs = 10  # 10
     lr = 0.001  # for a setting see the plot and decide
     batch_size = 32  # fixed time optimality
     
@@ -90,5 +97,6 @@ if __name__ == "__main__":
     
     print("\n\n")
     print(losses)
+    plot_stats(losses)
     final_loss = test_loop(test_dataloader, model, loss_fn, device)
     print(final_loss)
