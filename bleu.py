@@ -1,6 +1,4 @@
 import torch
-
-
 from data import *
 from transformer import *
 
@@ -8,6 +6,16 @@ from transformer import *
 
 def get_trans_refer(gen_indices, y, fr_itos):
     translation = []
+    for sent in gen_indices:
+        sent = sent.tolist()[1:]  # remove <sot>
+        sent = [fr_itos[i] for i in sent]
+        trans = []
+        for word in sent:
+            if word != '<eot>':
+                trans.append(word)
+            else:
+                break
+        translation.append(trans)
     
     reference = []
     for sent in y:
@@ -47,7 +55,7 @@ if __name__ == "__main__":
         
         gen_indices = model.generate(x1, vocab_fr)
         translation, reference = get_trans_refer(gen_indices, y, fr_itos)
-        print(json.dumps(reference, indent=4, ensure_ascii=False))
+        print(json.dumps(translation, indent=4, ensure_ascii=False))
         
         Translations.append(translation)
         References.append(reference)
