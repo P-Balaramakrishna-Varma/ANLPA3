@@ -174,8 +174,26 @@ class Transformer(nn.Module):
         outputs = self.decoder(trg, enc_out, trg_mask, src_mask)
         return outputs
 
+    def generate(self, src, vocab_fr):
+        src_mask = make_src_mask(src, self.num_heads).to(self.device)
+        enc_out = self.encoder(src, src_mask)
 
-
+        completed_mask = torch.zeros(src.shape[0]).bool().to(self.device)        
+        count = 0
+        
+        generated = torch.tensor([vocab_fr['<sot>']] * src.shape[0]).unsqueeze(1).to(self.device)
+        next_word_pred = self.decoder(generated, enc_out, None, src_mask)[:, -1, :]
+        next_word = torch.argmax(next_word_pred, dim=1)
+        completed_mask = torch.logical_or(completed_mask, next_word == vocab_fr['<eot>']) 
+        count +=1
+        while(completed_mask.long().sum() < src.shape[0] and count < 2 * src.shape[1]):
+            generated = torch.cat((generated, next_word.unsqueeze(1)), dim=1)
+            next_word_pred = self.decoder(generated, enc_out, None, src_mask)[:, -1, :]
+            next_word = torch.argmax(next_word_pred, dim=1)
+            completed_mask = torch.logical_or(completed_mask, next_word == vocab_fr['<eot>']) 
+            count += 1
+        return generated
+        # check number of completed_mask
 
 
 
@@ -200,3 +218,4 @@ if __name__ == '__main__':
         # print(x1)
         # print(make_src_mask(x1, 2))
         # print("\n\n\n")
+        # print(model.generate(x1, vocab_fr))
