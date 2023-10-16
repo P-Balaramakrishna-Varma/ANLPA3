@@ -2,7 +2,7 @@ import torch, math
 import torch.nn as nn
 from data import *
 from tqdm import tqdm
-
+import multihead_attention as ma
 
 # Embedding
 class GlobalEmbedding(nn.Module):
@@ -42,7 +42,7 @@ def gen_pe(max_length, d_model):
 class EncoderBlock(nn.Module):
     def __init__(self, embed_dim, expansion_factor=4, n_heads=8):
         super().__init__()
-        self.attention = nn.MultiheadAttention(embed_dim, n_heads, batch_first=True)
+        self.attention = ma.MultiheadAttention(embed_dim, n_heads, batch_first=True)
 
         self.norm1 = nn.LayerNorm(embed_dim) 
         self.norm2 = nn.LayerNorm(embed_dim)
@@ -88,11 +88,11 @@ class TransformerEncoder(nn.Module):
 class DecoderBlock(nn.Module):
     def __init__(self, embed_dim, expansion_factor=2, n_heads=8):
         super().__init__()
-        self.self_attention = nn.MultiheadAttention(embed_dim, n_heads, batch_first=True)
+        self.self_attention = ma.MultiheadAttention(embed_dim, n_heads, batch_first=True)
         self.norm1 = nn.LayerNorm(embed_dim)
         self.dropout1 = nn.Dropout(0.2)
         
-        self.cross_attention = nn.MultiheadAttention(embed_dim, n_heads, batch_first=True)
+        self.cross_attention = ma.MultiheadAttention(embed_dim, n_heads, batch_first=True)
         self.norm2 = nn.LayerNorm(embed_dim)
         self.dropout2 = nn.Dropout(0.2)
         
